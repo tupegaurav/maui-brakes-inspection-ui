@@ -1,121 +1,105 @@
-// CONFIGURATION
-// NOTE: For production, consider using a backend proxy to hide this key.
-const WEBHOOK_URL = 'https://gauravai.app.n8n.cloud/webhook/mauli-inspection'; 
-const API_KEY = 'maui-brakes-secret-2026';
+// ── Configuration ──────────────────────────────────────────────
+// Paste your n8n production webhook URL here (Webhook node → Production URL).
+const WEBHOOK_URL = "https://your-n8n-instance.app.n8n.cloud/webhook/mauli-inspection";
 
-// DOM ELEMENTS
-const form = document.getElementById('inspectionForm');
-const checkQtyInput = document.getElementById('checkQty');
-const okQtyInput = document.getElementById('okQty');
-const rejQtyInput = document.getElementById('rejQty');
-const reworkQtyInput = document.getElementById('reworkQty');
-const mathWarning = document.getElementById('mathWarning');
-const statusMsg = document.getElementById('statusMessage');
-const submitBtn = document.getElementById('submitBtn');
+// ── Elements ───────────────────────────────────────────────────
+const form = document.getElementById("inspection-form");
+const submitBtn = document.getElementById("submit-btn");
+const networkError = document.getElementById("network-error");
+const resultPanel = document.getElementById("result-panel");
+const resultMessage = document.getElementById("result-message");
+const resultErrors = document.getElementById("result-errors");
+const resetBtn = document.getElementById("reset-btn");
+const andonStatus = document.getElementById("andon-status");
 
-// LIVE MATH CALCULATION & VALIDATION
-function updateCalculations() {
-    const check = parseFloat(checkQtyInput.value) || 0;
-    const ok = parseFloat(okQtyInput.value) || 0;
-    const rej = parseFloat(rejQtyInput.value) || 0;
-    const rework = parseFloat(reworkQtyInput.value) || 0;
+const lights = {
+  critical: document.getElementById("light-critical"),
+  warning: document.getElementById("light-warning"),
+  normal: document.getElementById("light-normal"),
+};
 
-    // Update Percentage Displays
-    const rejPct = check > 0 ? ((rej / check) * 100).toFixed(1) : '0.0';
-    const reworkPct = check > 0 ? ((rework / check) * 100).toFixed(1) : '0.0';
-    
-    document.getElementById('rejPercentDisplay').textContent = `Rej %: ${rejPct}%`;
-    document.getElementById('reworkPercentDisplay').textContent = `Rework %: ${reworkPct}%`;
+// ── Andon light control ────────────────────────────────────────
+function setAndon(severity) {
+  Object.entries(lights).forEach(([key, el]) => {
+    el.classList.remove(`lit-${key}`);
+  });
 
-    // Validate Math: Ok + Rej MUST equal Check
-    // We allow a small floating point tolerance just in case, though integers are expected
-    const isMathValid = check === 0 || Math.abs((ok + rej) - check) < 0.01;
-
-    if (!isMathValid && check > 0) {
-        mathWarning.style.display = 'flex';
-        // submitBtn.disabled = true;  <-- COMMENTED OUT SO YOU CAN CLICK IT
-        submitBtn.textContent = "Submit Anyway (Warning)";
-    } else {
-        mathWarning.style.display = 'none';
-        submitBtn.disabled = !document.getElementById('partName').value;
-        submitBtn.textContent = "Submit Inspection";
-    }
+  if (severity && lights[severity]) {
+    lights[severity].classList.add(`lit-${severity}`);
+    andonStatus.textContent = severity.toUpperCase();
+  } else {
+    andonStatus.textContent = "STANDBY";
+  }
 }
 
-// Attach listeners to all quantity inputs
-[checkQtyInput, okQtyInput, rejQtyInput, reworkQtyInput].forEach(input => {
-    input.addEventListener('input', updateCalculations);
+// ── Form submit ────────────────────────────────────────────────
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  networkError.hidden = true;
+  resultPanel.hidden = true;
+
+  if (!WEBHOOK_URL || WEBHOOK_URL.includes("your-n8n-instance")) {
+    networkError.textContent =
+      "No webhook URL configured. Edit script.js and set WEBHOOK_URL.";
+    networkError.hidden = false;
+    return;
+  }
+
+  const entry = {
+    partName: document.getElementById("partName").value,
+    checkQty: Number(document.getElementById("checkQty").value),
+    okQty: Number(document.getElementById("okQty").value),
+    rejQty: Number(document.getElementById("rejQty").value),
+    reworkQty: Number(document.getElementById("reworkQty").value),
+    inspectorId: document.getElementById("inspectorId").value,
+    shift: document.getElementById("shift").value,
+  };
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending…";
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    });
+
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
+    const data = await res.json();
+    const isValid = data.isValid ?? data.valid;
+    const severity = data.severity || (isValid ? "normal" : "critical");
+    const errors = data.errors || [];
+
+    setAndon(severity);
+
+    resultMessage.textContent = isValid
+      ? "Entry passed validation and was logged to the sheet."
+      : "Entry did not pass validation. Nothing was logged.";
+
+    resultErrors.innerHTML = "";
+    errors.forEach((err) => {
+      const li = document.createElement("li");
+      li.textContent = `· ${err}`;
+      resultErrors.appendChild(li);
+    });
+
+    resultPanel.hidden = false;
+  } catch (err) {
+    networkError.textContent = `Couldn't reach the line: ${err.message}`;
+    networkError.hidden = false;
+    setAndon(null);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Log Entry";
+  }
 });
 
-// Also check when Part Name changes
-document.getElementById('partName').addEventListener('change', updateCalculations);
-
-// FORM SUBMISSION HANDLER
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    // Double check validation before sending
-    const check = parseFloat(checkQtyInput.value) || 0;
-    const ok = parseFloat(okQtyInput.value) || 0;
-    const rej = parseFloat(rejQtyInput.value) || 0;
-    
-    if (Math.abs((ok + rej) - check) > 0.01) {
-        alert("Cannot submit: Math error detected.");
-        return;
-    }
-
-    // UI Loading State
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-    statusMsg.textContent = '';
-    statusMsg.className = '';
-
-    // Prepare Payload
-    const payload = {
-        partName: document.getElementById('partName').value,
-        checkQty: parseInt(checkQtyInput.value, 10),
-        okQty: parseInt(okQtyInput.value, 10),
-        rejQty: parseInt(rejQtyInput.value, 10),
-        reworkQty: parseInt(reworkQtyInput.value, 10),
-        inspectorId: document.getElementById('inspectorId').value,
-        shift: document.getElementById('shift').value
-    };
-
-    try {
-        const response = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': API_KEY
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // SUCCESS STATE
-            statusMsg.textContent = '✅ Inspection Logged Successfully!';
-            statusMsg.className = 'success';
-            
-            // Reset Form after delay
-            setTimeout(() => {
-                form.reset();
-                document.getElementById('inspectorId').value = 'INS-001'; // Keep ID
-                updateCalculations(); // Reset displays
-                statusMsg.textContent = '';
-            }, 3000);
-            
-        } else {
-            // ERROR STATE FROM N8N
-            const errorMsg = data.errors ? data.errors.join(', ') : (data.message || 'Validation Failed');
-            throw new Error(errorMsg);
-        }
-    } catch (error) {
-        // NETWORK OR VALIDATION ERROR
-        statusMsg.textContent = '❌ ' + error.message;
-        statusMsg.className = 'error';
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Try Again";
-    }
+// ── Reset for next entry ──────────────────────────────────────
+resetBtn.addEventListener("click", () => {
+  form.reset();
+  resultPanel.hidden = true;
+  networkError.hidden = true;
+  setAndon(null);
 });
