@@ -33,11 +33,10 @@ function updateCalculations() {
 
     if (!isMathValid && check > 0) {
         mathWarning.style.display = 'flex';
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Fix Math Error";
+        // submitBtn.disabled = true;  <-- COMMENTED OUT SO YOU CAN CLICK IT
+        submitBtn.textContent = "Submit Anyway (Warning)";
     } else {
         mathWarning.style.display = 'none';
-        // Only enable if part name is also selected
         submitBtn.disabled = !document.getElementById('partName').value;
         submitBtn.textContent = "Submit Inspection";
     }
