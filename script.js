@@ -1,6 +1,6 @@
 // ── Configuration ──────────────────────────────────────────────
 // Paste your n8n production webhook URL here (Webhook node → Production URL).
-const WEBHOOK_URL = "https://gauravai.app.n8n.cloud/webhook/mauli-inspection";
+const WEBHOOK_URL = "https://gauravai.app.n8n.cloud/webhook-test/mauli-inspection";
 
 // ── Elements ───────────────────────────────────────────────────
 const form = document.getElementById("inspection-form");
