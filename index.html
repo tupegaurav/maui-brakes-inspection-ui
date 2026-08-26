@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maui Brakes Inspection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Maui Brakes Inspection</h1>
+            <p>Daily Quality Control Logbook</p>
+        </header>
+
+        <form id="inspectionForm">
+            <div class="form-group">
+                <label for="partName">Part Name</label>
+                <select id="partName" required>
+                    <option value="">Select Part...</option>
+                    <option value="TVS FRONT CALIPER">TVS FRONT CALIPER</option>
+                    <option value="K-17 FRONT CALIPER">K-17 FRONT CALIPER</option>
+                    <option value="REJ-C MASTER CYL">REJ-C MASTER CYL</option>
+                    <option value="ACPD CALIPER">ACPD CALIPER</option>
+                    <option value="HERO ADHG CALIPER">HERO ADHG CALIPER</option>
+                    <option value="HONDA UNICORN CALIPER">HONDA UNICORN CALIPER</option>
+                    <option value="CANISTER K10">CANISTER K10</option>
+                    <option value="N-TOEQ MASTER CYL">N-TOEQ MASTER CYL</option>
+                    <option value="TVS FRONT MASTER CYLINDER">TVS FRONT MASTER CYLINDER</option>
+                    <option value="HERO ABSR MASTER CYL">HERO ABSR MASTER CYL</option>
+                    <option value="ADJR MASTER CYLINDER">ADJR MASTER CYLINDER</option>
+                    <option value="ADHG MASTER CYLINDER">ADHG MASTER CYLINDER</option>
+                    <option value="HONDA UNICORN MASTER CYLINDER">HONDA UNICORN MASTER CYLINDER</option>
+                    <option value="H105 M/CYL">H105 M/CYL</option>
+                    <option value="PULSER HOLDER BRACKET">PULSER HOLDER BRACKET</option>
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="checkQty">Check Qty</label>
+                    <input type="number" id="checkQty" min="0" required placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="okQty">Ok Qty</label>
+                    <input type="number" id="okQty" min="0" required placeholder="0">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="rejQty">Rej Qty</label>
+                    <input type="number" id="rejQty" min="0" required placeholder="0">
+                    <small id="rejPercentDisplay">Rej %: 0%</small>
+                </div>
+                <div class="form-group">
+                    <label for="reworkQty">Rework Qty</label>
+                    <input type="number" id="reworkQty" min="0" required placeholder="0">
+                    <small id="reworkPercentDisplay">Rework %: 0%</small>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="inspectorId">Inspector ID</label>
+                    <input type="text" id="inspectorId" value="INS-001" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="shift">Shift</label>
+                    <select id="shift">
+                        <option value="Morning">Morning</option>
+                        <option value="Afternoon">Afternoon</option>
+                        <option value="Night">Night</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="mathWarning" class="warning-box" style="display:none;">
+                ⚠️ Math Error: Ok Qty + Rej Qty must equal Check Qty
+            </div>
+
+            <button type="submit" id="submitBtn">Submit Inspection</button>
+            
+            <div id="statusMessage"></div>
+        </form>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
